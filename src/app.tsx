@@ -12,6 +12,7 @@ type Transmission = {
 
 type SimulationSnapshot = {
   informed: boolean[]
+  sent: boolean[]
   round: number
   totalMessages: number
   ignoredMessages: number
@@ -162,6 +163,7 @@ const createInitialState = (nodeCount: number): SimulationState => {
 
   return {
     informed,
+    sent: Array.from({ length: nodeCount }, () => false),
     round: 0,
     totalMessages: 0,
     ignoredMessages: 0,
@@ -177,6 +179,7 @@ const createInitialState = (nodeCount: number): SimulationState => {
 
 const createSnapshot = (state: SimulationState): SimulationSnapshot => ({
   informed: [...state.informed],
+  sent: [...state.sent],
   round: state.round,
   totalMessages: state.totalMessages,
   ignoredMessages: state.ignoredMessages,
@@ -268,6 +271,7 @@ export function App() {
 
     const random = createRandom(settings.seed + current.round * 9973)
     const informed = [...current.informed]
+    const sent = [...current.sent]
     const activeEdges: Edge[] = []
     const transmissions: Transmission[] = []
     const lastNewNodes: number[] = []
@@ -275,11 +279,13 @@ export function App() {
     let ignoredMessages = current.ignoredMessages
 
     current.informed.forEach((isInformed, source) => {
-      if (!isInformed) {
+      if (!isInformed || current.sent[source]) {
         return
       }
 
       const neighbors = topology.adjacency[source]
+      sent[source] = true
+
       for (const target of pickMany(neighbors, settings.fanout, random)) {
         const ignored = informed[target]
 
@@ -304,12 +310,15 @@ export function App() {
 
     const outcome: RoundOutcome = {
       informed,
+      sent,
       round: current.round + 1,
       totalMessages,
       ignoredMessages,
       activeEdges,
       lastNewNodes,
-      complete: informed.every(Boolean),
+      complete:
+        informed.every(Boolean) ||
+        !informed.some((isInformed, index) => isInformed && !sent[index]),
       history: [...current.history, createSnapshot(current)],
     }
 
