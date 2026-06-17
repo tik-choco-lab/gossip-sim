@@ -586,7 +586,7 @@ export function App() {
             </label>
             <label>
               <span>
-                接続数 k
+                接続数 d
                 <strong>{settings.connectionCount}</strong>
               </span>
               <input
@@ -601,7 +601,7 @@ export function App() {
             </label>
             <label>
               <span>
-                交換ノード数 d
+                交換ノード数 f
                 <strong>{settings.fanout}</strong>
               </span>
               <input
