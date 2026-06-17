@@ -86,19 +86,48 @@ const createTopology = (settings: Settings) => {
   const k = clamp(settings.connectionCount, 1, Math.max(1, n - 1))
   const random = createRandom(settings.seed)
   const edgeMap = new Map<string, Edge>()
+  const degrees = Array.from({ length: n }, () => 0)
 
-  for (let node = 0; node < n; node += 1) {
-    const next = (node + 1) % n
-    edgeMap.set(edgeKey(node, next), [node, next])
+  const addEdge = (source: number, target: number) => {
+    const key = edgeKey(source, target)
+    if (source === target || edgeMap.has(key)) {
+      return false
+    }
+
+    edgeMap.set(key, [source, target])
+    degrees[source] += 1
+    degrees[target] += 1
+    return true
   }
 
-  for (let node = 0; node < n; node += 1) {
-    const candidates = Array.from({ length: n }, (_, index) => index).filter(
-      (target) => target !== node,
-    )
-    for (const target of pickMany(candidates, k, random)) {
-      edgeMap.set(edgeKey(node, target), [node, target])
+  if (k >= 2) {
+    for (let node = 0; node < n; node += 1) {
+      const next = (node + 1) % n
+      addEdge(node, next)
     }
+  }
+
+  while (degrees.some((degree) => degree < k)) {
+    const candidates: Edge[] = []
+
+    for (let source = 0; source < n; source += 1) {
+      if (degrees[source] >= k) {
+        continue
+      }
+
+      for (let target = source + 1; target < n; target += 1) {
+        if (degrees[target] < k && !edgeMap.has(edgeKey(source, target))) {
+          candidates.push([source, target])
+        }
+      }
+    }
+
+    if (candidates.length === 0) {
+      break
+    }
+
+    const [source, target] = candidates[Math.floor(random() * candidates.length)]
+    addEdge(source, target)
   }
 
   const adjacency = Array.from({ length: n }, () => [] as number[])
